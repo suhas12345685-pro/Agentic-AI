@@ -1,236 +1,337 @@
-System Architecture Design: Self-Hosted Agentic AI Infrastructure
-1. Introduction to Autonomous Agentic Frameworks
-The artificial intelligence landscape has undergone a dramatic architectural transformation, evolving far beyond simple text generation to encompass complex, multi-step logical execution. The evolutionary trajectory of modern cognitive systems traces a path from Large Language Models (LLMs) focused on predictive linguistic fluency, to Large Action Models (LAMs), Large Concept Models (LCMs), Large Reasoning Models (LRMs), and ultimately toward recursive self-improving frameworks known as Reinforcement Learning Models (RLMs).1 As foundational models shift from predicting the next token to mastering structural logic and real-world interactions, the paradigm of the software architecture encapsulating them must also evolve. This transition requires abandoning isolated, stateless prompt-response mechanisms in favor of robust, autonomous agentic systems capable of deep reasoning, persistent memory, and deterministic execution.1
-The engineering blueprint presented in this architectural report delineates the design, codebase modularity, and deployment strategy for a highly advanced, self-hosted agentic AI system. A primary constraint driving this architecture is the elimination of traditional Command Line Interfaces (CLIs) or centralized web-based graphical dashboards. Instead, the system mandates a headless operational paradigm, utilizing ubiquitous Messaging App integrations—specifically Telegram and WhatsApp Business—as the primary user interface.3 This approach decentralizes the human-agent interaction, embedding autonomous capabilities directly into the communication channels users already inhabit.
-Beneath this messaging layer, the architecture is supported by a sophisticated bifurcated processing hierarchy. The system implements a "Cognitive Brain" responsible for overarching task decomposition, multi-agent orchestration, and conflict monitoring.5 Working in tandem is the "Intelligence Brain," functioning as an advanced, dynamically shifting routing layer that toggles execution between Large Reasoning Models (LRMs) and standard LLMs to optimize latency, API cost, and computational depth.7
-To eradicate the conversational amnesia that plagues standard stateless AI configurations, the agent relies on a tripartite cognitive memory architecture encompassing working, episodic, semantic, and procedural data stores.2 This allows the agent to maintain deep longitudinal context across sessions and platforms. Furthermore, the architecture extends the agent’s reach into the physical and digital world by equipping it with robust computer-use skills, enabling it to navigate, read, and manipulate local or cloud-based operating systems via secure, sandboxed containerization.10 Finally, recognizing that absolute autonomy necessitates participation in the digital economy, the architecture integrates a secure, cryptographically verified payment module capable of autonomous transaction execution via Machine Payments Protocols (MPP), x402 standards, and delegated consent frameworks.11
-2. Headless User Interface: Messaging App Integration
-The requirement to detach the agent from a traditional CLI or web-based frontend mandates a headless architecture where continuous, asynchronous interaction is facilitated through messaging platforms.3 This shift imposes significant backend engineering challenges, as the system must effectively parse unstructured natural language inputs, maintain unified cross-platform session states, and render multi-modal outputs back to the user without a graphical Document Object Model (DOM) to anchor the interaction.
-2.1 Protocol Normalization and Webhook Integration
-Messaging platforms utilize highly divergent payload structures, authentication protocols, and delivery mechanisms. Telegram primarily relies on long-polling or configured webhook callbacks delivering JSON payloads that detail chat identifiers, raw message text, and inline keyboard interactions.13 Conversely, the WhatsApp Business API utilizes heavily authenticated, stateful webhooks containing distinct metadata regarding message delivery status, rich media attachments, and verified user identities.4 Building direct, point-to-point integrations for each platform often results in tightly coupled, brittle codebases where the core agent logic becomes entangled with platform-specific formatting rules.
-To resolve this, the system implements a unified API Gateway functioning as an ingress normalization layer. Developed using an asynchronous Python framework such as Quart or FastAPI, this gateway acts as the sole public-facing endpoint for all messaging providers.16 When an inbound webhook is received from Telegram or WhatsApp, the payload is stripped of its proprietary formatting and transformed into a standardized internal object, commonly structured as an AgentMessage. This object encapsulates universally applicable attributes regardless of the source platform: user_id, platform_origin, timestamp, raw_content, intent_flags, and media_attachments.
-In ecosystems where rapid prototyping and visual workflow management are prioritized, the architecture can offload this normalization process to orchestration engines like n8n. Using n8n workflows, developers can deploy nodes that listen for Telegram bot triggers and WhatsApp webhooks simultaneously, normalize the data using intermediate JavaScript or Python scripts, and funnel the unified payload to the agent's core FastAPI endpoint.15 However, for high-performance, fully self-hosted production environments, handling the webhooks natively within the Python backend provides tighter control over concurrency and request latency.16
-2.2 The Chain of Responsibility Design Pattern
-Standard web application routing maps specific Uniform Resource Locators (URLs) to designated controller functions. However, messaging bots receive all updates through a single designated webhook endpoint, rendering traditional path-based routing ineffective.19 To process these heterogeneous incoming messages intelligently, the system eschews monolithic conditional blocks in favor of the Chain of Responsibility design pattern.19
-In this architectural pattern, the normalized AgentMessage object is passed sequentially through a configured, decoupled list of handler modules. Each handler evaluates the message and autonomously decides whether to process it, modify it, or pass it down the chain.19 The standard execution flow involves:
-Authentication & Rate Limiting Handler: Validates the user's cryptographic identity or phone number against an internal registry, enforcing per-user interaction limits to prevent abuse and denial-of-wallet attacks driven by excessive LLM API calls.
-Context and State Recovery Handler: Queries the underlying database and Letta stateful bridging plugins to retrieve active session parameters. This ensures the agent maintains full context across disparate conversations, bridging the gap between desktop interactions, WhatsApp texts, and Telegram groups seamlessly.20
-Intent Classification Handler: A lightweight, localized embedding model evaluates the vector space of the message to determine its intent. It classifies whether the input is a casual inquiry, a direct system command (e.g., /status), or a complex task requiring deep cognitive decomposition.
-Agent Dispatch Handler: The final link in the chain that routes the fully enriched payload to the Cognitive Brain for execution.
-This highly modular, non-sequential chain design ensures that adding support for future communication protocols, such as Rich Communication Services (RCS) via Twilio or Slack enterprise channels, requires only the addition of a new normalization adapter at the ingress layer.20 The core reasoning logic of the AI agent remains entirely isolated from the volatile nature of external messaging APIs.
-3. Layered Cognitive Memory Architecture
-A critical structural deficiency in standard LLM implementations is their fundamental statelessness. Operating purely on the tokens present within a finite context window, these models suffer from "conversational amnesia," where historical facts, user preferences, and established logical parameters are rapidly forgotten as the conversation progresses and the context window overflows.2 To engineer an agent capable of persistent, longitudinal relationships and adaptive, goal-oriented learning, the system implements a layered memory architecture inspired by human cognitive neuroscience. This architecture systematically isolates information into working, episodic, semantic, and procedural domains.22
-As evaluated by the 2026 LOCOMO benchmark—which standardizes the evaluation of long-term conversational memory across parameters like LLM accuracy scores, latency, and token consumption—the implementation of specialized memory architectures is no longer optional for production agents.2 Full-context approaches that continuously prepend historical logs to the prompt are computationally inefficient, resulting in massive token costs and latencies exceeding 9 seconds, whereas optimized memory retrievers reduce latency to sub-second thresholds while maintaining high accuracy.2
-3.1 Working Memory (Virtual Context Management)
-Working memory functions as the agent's immediate cognitive scratchpad, handling temporary, task-specific information required for the current reasoning cycle.23 Technically, this is implemented through the active tokens loaded into the model's context window. This includes the static system prompt, real-time environmental state data, active tool schemas, and a FIFO (First-In, First-Out) buffer containing the most recent conversational turns.2
-Adopting the MemGPT operating system paradigm, the architecture treats the LLM's finite context window as fast, volatile memory (RAM), which must be managed alongside a larger, persistent storage layer (Disk).2 To prevent critical context overflow, a background asynchronous daemon continuously monitors token pressure. When working memory utilization approaches a critical threshold (e.g., 75% capacity), an autonomous write-back cycle is triggered. The agent independently reviews its working memory, summarizes the salient points using an LLM, and writes this compressed narrative to external archival tiers before purging the oldest entries from the FIFO queue.2
-3.2 Episodic Memory (The Chronological Log)
-Episodic memory serves as the immutable, chronological ledger of the agent's past experiences. It stores highly specific interactions with their full context intact, including exact timestamps, what was asked, the answers provided, the external tools called, and the resulting environmental outcomes.22
-Episodic memory is primarily constructed using a high-performance vector database (such as Qdrant, Milvus, or Pinecone) to enable rapid semantic retrieval.2 Each distinct interaction episode is converted into a high-dimensional vector embedding. However, relying solely on semantic cosine similarity for retrieval creates severe operational issues. An agent might continuously retrieve an outdated episode simply because it shares vocabulary with the current prompt, ignoring more recent developments.2
-To resolve this, the memory manager implements a weighted retrieval scoring algorithm. This mechanism balances three independent signals:
-Semantic Relevance: The standard cosine similarity distance between the query embedding and the stored memory embedding, representing approximately 60% of the weight.2
-Temporal Recency: An exponential decay function modeled mathematically on the Ebbinghaus forgetting curve.2 A memory encoded yesterday outweighs a semantically similar memory from a year ago. This represents approximately 25% of the total score.
-Inferred Importance: A heuristic score assigned by a lightweight LLM at the time of writing, determining the long-term value of the memory. Routine chatter is scored low, while explicitly stated user preferences or critical system errors are scored high, accounting for the final 15% of the weight.2
-3.3 Semantic Memory (The Consolidated Knowledge Graph)
-While episodic memory logs granular, specific interactions, semantic memory extracts, refines, and consolidates general, durable facts about the user and the operational environment.22 Storing semantic data as flat key-value pairs or isolated vectors often results in a catastrophic loss of relational context. For instance, understanding the complex dependency that "User A operates within Organization B, which utilizes Software Stack C, which possesses a known incompatibility with Network Protocol D" cannot be effectively modeled in a flat database.2
-Consequently, the semantic memory tier is implemented using a Graph Database architecture, utilizing tools such as Neo4j or Amazon Neptune.2 Entities (such as Users, Repositories, APIs, and Preferences) are defined as distinct nodes, and their relationships are mapped as directed edges.2 When generating a response, the system employs Graph Retrieval-Augmented Generation (Graph RAG) to traverse these nodes, extracting highly accurate relational topologies to enrich the prompt context.27 Research on the Mem0g graph-enhanced benchmark demonstrates that graph-based retrieval achieves superior factual accuracy while maintaining a low latency footprint compared to traditional RAG.2
-Because factual data is susceptible to degradation over time (e.g., a user alters their infrastructure or changes employment), the graph architecture incorporates a confidence decay mechanism. If a semantic node is not actively reinforced by newly generated episodic data over a configurable epoch (e.g., six months), its confidence weight is systematically downgraded. Eventually, the fact is flagged as stale, prompting the agent to proactively verify the information during its next interaction with the user.2
-3.4 Procedural Memory (Heuristics and Action Patterns)
-Procedural memory—arguably the most complex and valuable tier for autonomous agents—dictates how tasks are executed. It captures learned heuristics, coding preferences, organizational specificities, and historical patterns of successful execution.2
-While some foundational procedural memory is implicitly embedded in the LLM's pre-trained weights or explicitly hardcoded in the agent's initialization scripts 24, dynamic procedural memory is stored as structured workflow templates and executable action histories.2 For example, a semantic memory records that "The user prefers Python," whereas a procedural memory dictates the operational rule: "When writing data pipeline scripts for this specific user, always utilize the Polars library instead of Pandas, and ensure all API payloads over 4KB are paginated to prevent gateway timeouts".2
-This memory is built through continuous learning loops. When an agent successfully completes a complex, multi-step task, the orchestration layer distills the specific sequence of tool calls, bash commands, and API interactions that led to success. This specific sequence is generalized into a procedural template and committed to the procedural store. Upon encountering a similar problem domain in the future, the agent retrieves this heuristic template, vastly reducing computational overhead, bypassing previously failed approaches, and increasing execution speed.2
-However, autonomous modification of procedural memory carries significant security risks. If an agent inadvertently learns a malicious workflow or introduces a critical bug into a procedural template, it could subvert the designer's intentions permanently.24 Therefore, all modifications to the procedural store require strict validation. An isolated LLM evaluator, functioning as an internal "Critic," must review and sanitize the proposed procedural update before it is committed to the database.
-3.5 Memory Consolidation and the AgentCore Pipeline
-To orchestrate the complex interplay between working, episodic, semantic, and procedural systems, the architecture utilizes a multi-stage consolidation pipeline analogous to the Amazon Bedrock AgentCore memory system.2 Raw conversations are not dumped haphazardly into databases. Instead, an asynchronous background extraction process leverages LLMs to sift through the interaction logs, distinguishing between routine chatter and actionable insights.2
-When new information is identified, the system performs intelligent consolidation rather than simple appending. The retrieval engine searches for semantically similar existing memories. An LLM evaluator then determines the appropriate state action based on a strict prompt directive:
-ADD: The extracted information is entirely distinct and new.
-UPDATE: The new knowledge complements, refines, or actively updates an existing record.
-NO-OP: The information is redundant and provides no new value.2
-To maintain an immutable audit trail, the system does not immediately delete overwritten memories. Instead, outdated records are marked with an INVALID or INACTIVE flag within the vector store, allowing developers to track the evolution of the agent's understanding over time while prioritizing the most recent data for active retrieval.2
-4. The Cognitive Brain: Task Decomposition and Orchestration
-The "Cognitive Brain" acts as the central orchestrator of the system, fundamentally distinguishing true agentic behavior from sophisticated text generation. It utilizes advanced cognitive design patterns to mimic human problem-solving methodologies, dynamically breaking abstract, complex objectives into deterministic, actionable, and modular steps.28
-4.1 Modular Agentic Planner (MAP) and Design Patterns
-Taking inspiration from cognitive neuroscience, the Cognitive Brain is built upon the Modular Agentic Planner (MAP) framework. Human planning relies on specialized brain regions to handle distinct component processes. Similarly, the MAP framework delegates cognitive tasks to specialized LLM modules within the agent. These modules include sub-systems for conflict monitoring, state prediction, state evaluation, dynamic task decomposition, and cross-module coordination.6
-To execute these functions, the Cognitive Brain heavily employs the Reason and Act (ReAct) paradigm.5 Before invoking any external tool, the agent is forced to generate an internal chain-of-thought "reasoning" trace. This trace outlines the agent's hypothesis, the current environmental state, and its planned course of action. Upon executing the tool and receiving the result (the "observation"), the agent updates its internal state matrix before deciding on the next step.
-This ReAct loop is tightly coupled with a "Reflection" or "Review and Critique" pattern.5 If a tool execution fails, returns a syntax error, or yields sub-optimal data, a dedicated reflection module autonomously evaluates the failure trajectory. It identifies the root cause of the error, dynamically adjusts the operational plan, and attempts a divergent, corrective approach.5 This self-critique loop significantly improves the system's interpretability and reliability, as the agent produces transparent, human-like task-solving trajectories that can be audited by developers.31
-4.2 Multi-Agent Swarm and Hierarchical Decomposition
-For highly complex, multi-faceted tasks that exceed the context window or cognitive capabilities of a single monolithic agent, the Cognitive Brain dynamically initiates a Multi-Agent architecture.5 Using Hierarchical Task Decomposition or Swarm patterns, the system instantiates a "Manager Agent".5
-The Manager Agent acts as the primary orchestrator. When presented with a broad directive (e.g., "Analyze our current cloud infrastructure logs, research emerging security vulnerabilities related to our specific tech stack, and deploy a patch to the staging environment"), the Manager decomposes the goal and delegates tightly scoped sub-tasks to specialized worker agents:
-Research Agent: Equipped with web search tools and access to security databases to aggregate vulnerability reports.
-Analysis Agent: Equipped with log-parsing tools to review the internal cloud infrastructure state.
-Execution Agent: Equipped with computer-use tools to write the patch and execute the deployment script.
-This multi-agent collaboration prevents cognitive overload, mitigates the risk of hallucination by strictly bounding the responsibility of each agent, and allows for parallel asynchronous execution, dramatically reducing overall task latency.32
-4.3 Documentation-as-Cognitive-Model
-To ensure the agents maintain a coherent understanding of their purpose over time, the system adopts the "Documentation-as-Cognitive-Model" best practice. Agents are guided not just by raw context, but by structured documents that map directly to cognitive functions.30 This framework utilizes four specific pillars:
-The Past (changelog.md): Represents the historical evolution of the system, allowing the agent to understand previous decisions and state changes.
-The Present (architecture.md): Functions as the evergreen source of absolute truth regarding the current state of the codebase or infrastructure.
-The Future (requirements.md): A living snapshot of the targeted end-state and vision of the project.
-The Plan (roadmap.md): The bridge connecting the present to the future, detailing the specific steps required to fulfill the requirements.30
-By forcing the agents to continually read and update these files, the human developer shifts from writing code to acting as an architect of intent, managing the state of the documentation while the autonomous agents execute the underlying logic.30
-4.4 Production-Grade Engineering Best Practices
-To ensure the reliability and maintainability of the Cognitive Brain, the architecture strictly adheres to core best practices for production-grade agentic workflows.36 These include:
-Tool-First Design over MCP: While the Model Context Protocol (MCP) is utilized for broad integration, critical capabilities are designed with a tool-first approach, prioritizing deterministic execution over open-ended LLM interpretation.
-Single-Tool and Single-Responsibility Agents: Worker agents are designed to execute narrow, specific functions (e.g., an agent that only formats SQL queries) rather than acting as generalized polymaths.
-Pure-Function Invocation: Ensuring that agent actions produce predictable, side-effect-free results wherever possible, increasing testability.
-Externalized Prompt Management: System prompts are decoupled from the core application logic, managed as discrete, version-controlled assets.
-KISS Principle (Keep It Simple, Stupid): Avoiding unnecessary architectural complexity by preferring standard, auditable execution paths over highly abstracted, black-box orchestration frameworks.36
-5. The Intelligence Brain: Dynamic Model Routing
-A foundational innovation of this architecture is the "Intelligence Brain," which actively abandons the static reliance on a single, monolithic foundational model. In real-world deployments, utilizing a massive, highly capable model for every interaction results in exorbitant API costs and unacceptable latency. Conversely, utilizing a small, inexpensive model for complex tasks inevitably leads to logic failures, hallucinations, and broken tool calls.7 The Intelligence Brain resolves this dichotomy by functioning as an advanced routing layer that dynamically selects the most appropriate neural architecture—choosing between Large Reasoning Models (LRMs) and standard LLMs—based on the precise computational and logical requirements of the immediate prompt.37
-5.1 LLM vs. LRM Divergence and Test-Time Scaling
-Standard Large Language Models (e.g., GPT-4o, Claude 3.5 Sonnet, Llama 3) represent the bedrock of text generation. They are fundamentally optimized for next-token prediction, demonstrating exceptional linguistic fluency, broad contextual understanding, and rapid response times.1 However, because they generate responses immediately, they struggle significantly with deep multi-step logic, complex mathematical proofs, spatial reasoning, and advanced code refactoring.1
-Large Reasoning Models (LRMs) (e.g., OpenAI's o1 series, DeepSeek-R1) represent a paradigm shift in addressing these limitations. LRMs do not simply predict the next token; they utilize a mechanism known as test-time scaling or inference-time computation.41 They are explicitly trained via reinforcement learning methodologies—specifically incorporating Process Reward Models (PRMs) that evaluate the intermediate steps of reasoning, rather than just Outcome Reward Models (ORMs) that only judge the final answer.37 This training compels the LRM to allocate additional computational resources to "think" internally, building explicit reasoning chains, exploring alternative hypotheses, and revising earlier assumptions before ever producing a final output token.37
-This internal chain-of-thought dramatically increases performance on logic-heavy, deterministic tasks, automating complex deduction protocols.37 However, this advanced capability incurs massive penalties; LRM execution involves high token consumption, significantly increased monetary costs, and extended wall-clock latency, rendering them wholly unsuitable for rapid, conversational interactions.8
-5.2 Complexity Classification and Routing Logic
-To optimize the system, the Intelligence Brain intercepts the prompt generated by the user or the Cognitive Brain and evaluates it through a sophisticated, multi-headed complexity classifier.7 Simple rule-based routing heuristics (e.g., routing based on the presence of keywords like "debug" or "calculate") are fast but inherently brittle, breaking as workloads shift or API structures evolve.7
-Instead, the architecture utilizes a model criteria approach inspired by frameworks like NVIDIA's Prompt Task and Complexity Classifier.7 A lightweight, highly optimized classification model (e.g., a fine-tuned DeBERTa model) evaluates the prompt across several dimensions in real-time:
-Task Category Classification: Determining the fundamental nature of the request, such as summarization, sentiment classification, quantitative analysis, or code generation.7
-Dimensional Scoring: The prompt is scored across multiple vectors, including required creativity, required domain knowledge, the presence of rigid constraints, and the reliance on few-shot examples.7
-Entropy Analysis: The router utilizes advanced criteria such as Full and Binary Entropy (FBE) to calculate the uncertainty inherent in the input. High entropy indicates ambiguity that requires deeper analytical processing.42
-These dimensions are synthesized into a weighted overall complexity score. Based on this score, the routing logic dispatches the query:
-Task Profile
-Complexity Score
-Target Model Class
-Architectural Rationale
-Conversational Greeting / Chitchat
+# Self-Hosted Agentic AI Infrastructure
 
-SLM / Fast Local LLM
-Minimal latency required; deep logical reasoning is entirely unnecessary.
-Contextual Summarization / Extraction
+## System Architecture Overview
 
-Standard LLM
-High throughput required; operations are constrained by context window processing rather than inferential depth.
-Structured Output / Tool Parameter Generation
+```mermaid
+flowchart TD
+    User([User]) --> |Telegram / WhatsApp| GW[API Gateway\nIngress Normalizer]
+    GW --> COR[Chain of Responsibility]
+    COR --> CB[Cognitive Brain\nTask Decomposition & Orchestration]
+    CB --> IB[Intelligence Brain\nDynamic Model Router]
+    IB --> |Low complexity| LLM[Standard LLM / SLM]
+    IB --> |High complexity| LRM[Large Reasoning Model]
+    CB <--> MEM[Memory Architecture\nWorking · Episodic · Semantic · Procedural]
+    CB --> CU[Computer-Use\nSandboxed Execution]
+    CB --> PAY[Payment Module\nAgentic Commerce]
+    LLM --> CB
+    LRM --> CB
+```
 
-High-Tier LLM
-Requires exact adherence to JSON schema schemas and strict function calling capabilities.
-Code Debugging / Abstract Logic / Math Proof
+---
 
-LRM (Reasoning Model)
-Demands test-time scaling, internal reflection, task decomposition, and multi-step deductive proofs.
+## 1. Headless UI: Messaging Integration
 
-Furthermore, the system is designed to integrate protocols like Google's UniRoute, which models routing decisions based on historical error vectors across representative prompts.7 This allows the Intelligence Brain to generalize its routing logic to entirely unseen models, making the architecture context-aware and highly adaptable as new foundation models are released into the open-source ecosystem.7 This dynamic orchestration guarantees that the agent operates with maximum intellectual rigor when analyzing code or financial data, without sacrificing the sub-second conversational latency expected within a standard messaging interface.8
-6. Computer-Use Skills and Sandboxed Execution
-For an agent to function autonomously beyond the confines of text manipulation, it must bridge the critical gap between language generation and deterministic digital action. The architecture integrates a specialized "Computer Use" module, granting the agent the explicit ability to navigate graphic user interfaces (GUIs), manage local file systems, and execute complex shell scripts natively.10
-6.1 Headless Operating System Manipulation
-Leveraging architectural frameworks analogous to the Anthropic Computer Use API (specifically targeting enhanced configurations like computer_20251124), the system initializes a virtualized, headless X11 display buffer for the agent.43 The agent visually perceives the graphical environment by taking high-resolution screenshots and processing them through a multimodal vision model.
-It interacts with the virtualized operating system by outputting highly precise screen coordinates (formulated as [x, y]) paired with specific, programmatic action definitions. These actions include mouse click, keyboard type, dynamic scroll, and notably, localized zoom operations that allow the agent to magnify and inspect specific regions of the screen defined by boundary coordinates [x1, y1, x2, y2].43
-This capability ensures that the agent is not constrained to platforms with modern REST APIs. It can visually interact with legacy enterprise software, conduct research using standard web browsers, navigate visual captchas, and manipulate applications that strictly require human-like graphical interaction.43
-6.2 Secure Container Hardening and Network Controls
-Granting an autonomous artificial intelligence direct execution access to an underlying operating system presents an extreme security vulnerability. The dynamic generation of bash commands opens massive vectors for prompt injection attacks, where malicious instructions embedded in a webpage or a downloaded file could hijack the agent's behavior, leading to data exfiltration or system compromise.10 To systematically mitigate this threat profile, the computer-use environment is strictly isolated using defense-in-depth methodologies.
-Hardware and Kernel-Level Isolation: Standard Docker containers share the host machine's kernel, providing insufficient boundaries for executing untrusted AI-generated code. Instead, the runtime operates inside micro-virtual machines leveraging technologies like Firecracker, or utilizes hardened container runtimes employing gVisor (runsc). gVisor intercepts system calls entirely in userspace, providing a robust, isolated boundary against kernel-level exploits, drastically reducing the attack surface.10
-Immutable Filesystem Enforcement: When instantiated, the agent's container mounts the root filesystem as read-only (--read-only). The ability to write files is strictly limited to isolated, ephemeral storage locations (--tmpfs /tmp:...) that are destroyed the moment the session terminates. Furthermore, the container execution flags explicitly drop all privilege escalation vectors (--cap-drop ALL) and prevent the creation of setuid binaries (--security-opt no-new-privileges). To thwart potential denial-of-service via fork bombs initiated by erratic agent code, process counts are rigidly restricted (--pids-limit 100).10
-The Network Proxy Pattern: To prevent data exfiltration and unauthorized communication with external command-and-control servers, the sandbox environment operates completely devoid of direct internet access (--network none). All external network communication must be routed through a highly monitored proxy host via Unix sockets.
-Credential Safety: In this hardened setup, the agent is never provisioned with actual API keys or sensitive credentials. Instead, the agent generates unauthenticated requests directed at the internal proxy. The proxy validates the request logic, silently injects the necessary cryptographic credentials, and forwards the payload to the external service. This proxy pattern ensures that even in the event of a total sandbox compromise, the core infrastructure keys remain inaccessible to the attacker.10
-6.3 The Model Context Protocol (MCP)
-To standardize how the agent discovers and interfaces with both local scripts and remote data sources, the architecture utilizes the open-source Model Context Protocol (MCP).36 MCP acts as an agnostic abstraction layer, exposing disparate external capabilities—ranging from PostgreSQL database queries and local filesystem operations to specific API endpoints—as standardized, universally discoverable network endpoints.
-The agent queries the MCP Gateway to understand the current topology of available tools, retrieves their expected JSON schemas, and dynamically binds to them at runtime.44 This decoupled design ensures the agent remains a pure reasoning engine, entirely agnostic to the underlying implementations or connection protocols of the specific utilities it invokes.36
-7. Secure Payment Module: Agentic Commerce
-As the autonomous agent executes tasks in the real world—such as booking flights, reserving server infrastructure, managing cloud subscriptions, or purchasing third-party APIs—it inevitably encounters the fundamental bottleneck of modern e-commerce: existing payment infrastructure is inherently designed for human interaction. Traditional gateways assume a human operator is present to review the charge, navigate biometric 3D-Secure approvals, solve visual CAPTCHAs, and authorize transactions that generally take several seconds to finalize.11
-To overcome this structural barrier, the architecture features a specialized Agentic Commerce module explicitly engineered for autonomous, deterministic, machine-to-machine financial settlement.11
-7.1 Machine Payments Protocol (MPP) and the x402 Standard
-For pure machine-to-machine transactions, the system leverages the Machine Payments Protocol (MPP) and the x402 HTTP standard to execute instant, low-latency micropayments.48
-In a standard workflow, when the agent attempts to access a monetized resource (e.g., an external data API or an MCP tool) and receives an HTTP 402 (Payment Required) status code, the agentic payment adapter intercepts the request.11 Unlike traditional human-facing gateways that target 2–3 second authorization windows, the agentic gateway architecture achieves finality in less than 150ms.11
-The authorization pipeline instantly evaluates the requested amount against the user's pre-configured Policy Engine. This engine enforces rigid, deterministic guardrails locally, checking daily spending limits, ensuring the merchant address is on an allowlist, validating rate caps, and confirming execution within permissible time windows.11 If the transaction complies with all constraints, the agent utilizes a programmatic wallet to settle the payment. To bypass legacy banking latency, this often utilizes high-throughput blockchain rails—such as the Tempo network with USDC stablecoins.48 Once the ledger is updated, the agent seamlessly retries the original HTTP request, this time including the cryptographically signed authorization token in the header, unlocking the resource autonomously.11
-7.2 MPC Wallets and Cryptographic Security
-The security of autonomous agentic wallets is paramount. Traditional software wallets require a private key stored in environment variables or configuration files, creating an immense and highly vulnerable attack surface. To mitigate this, the architecture employs Multi-Party Computation (MPC) signing techniques.11
-Under the MPC paradigm, the private cryptographic key is never fully assembled in a single location. Instead, it is fragmented into multiple distinct mathematical shards (e.g., an application shard hosted by the gateway, a backup shard, and an infrastructure shard hosted locally by the agent).11 Executing a valid transaction signature requires a threshold of these shards (e.g., 2-of-3). Consequently, even if the agent's sandbox is fully compromised by a malicious actor, the attacker cannot drain the wallet funds because they lack access to the necessary threshold of disparate shards residing on separate network infrastructure.11
-7.3 Fiat Integration via Delegated Consent and UPI
-While blockchain-based micropayments excel in purely digital environments, interaction with the broader economy necessitates integration with traditional fiat rails. For these scenarios, the architecture interfaces with established financial APIs, such as Stripe Issuing and Razorpay Agentic Payments, which have been specifically upgraded to handle machine traffic.47
-Virtual Card Issuance: When interacting with standard e-commerce platforms, the system communicates with Stripe Issuing. Rather than exposing the user's primary credit line, the agent requests the generation of a temporary, highly scoped virtual credit card number uniquely tied to that single purchase intent.47 The agent inputs these details into the merchant's checkout flow. This isolates risk, ensuring the agent itself never possesses the user's core financial details.47
-UPI Circle and Pre-Authorization: For regions relying on real-time fiat infrastructure, such as the Unified Payments Interface (UPI) in India, the architecture utilizes Razorpay's Python SDK to leverage delegated consent frameworks like UPI Circle or Reserve Pay mandates.12
-In this flow, the user provides explicit, one-time authorization via their mobile banking app, granting the agent a bounded scope (e.g., a maximum spend limit of ₹20,000 for groceries). This creates a cryptographically verifiable consent token (a server-signed JWT containing the scope, limit, nonce, user ID, and device fingerprint).12 The agent can subsequently utilize the Razorpay Python client (e.g., client.order.create and POST /v1/preauths) to autonomously trigger deductions within that predefined boundary.12
-To ensure idempotency and prevent catastrophic duplicate charges during network retries, all payment API calls utilize server-generated UUIDv4 idempotency keys tracked in a dedicated audit ledger.12 All successful capture events are rigorously validated by hashing the webhook payload against the Razorpay secret to verify the X-Razorpay-Signature header, eliminating the risk of spoofed confirmations.12
-8. Modular Codebase Directory Structure
-A sophisticated multi-agent system operating across messaging platforms, memory databases, and payment rails requires a rigorously organized file structure. This structure is paramount to maintaining clean separation of concerns, facilitating team collaboration, ensuring horizontal scalability, and adhering to cognitive design patterns.36
-The architecture dictates the following modular directory layout, treating the system as a collection of specialized microservices rather than a monolithic script:
+The system operates entirely headlessly. Telegram and WhatsApp Business webhooks are the sole user interface. A unified API Gateway (FastAPI / Quart) normalises all incoming payloads into a standard `AgentMessage` object before routing through the Chain of Responsibility.
 
-Directory / File Path
-Architectural Purpose and Functionality
-/agentic-ai/agents/
-Contains the core logical schemas for individual agents. It includes abstract base classes (base_agent.py), specific worker implementations (planner_agent.py), and the strict typing interfaces that define agent behavior.
-/agentic-ai/memory/
-Houses the critical subsystems for state persistence. Includes clients for Episodic storage (Vector database wrappers), Semantic storage (Neo4j graph query builders), and Procedural memory routing algorithms.
-/agentic-ai/brain/
-The central intelligence hub. Contains the orchestration logic, including the ReAct execution loop (step_handler.py), the Task Manager, and the Intelligence Brain's routing thresholds (the DeBERTa prompt complexity classifier).
-/agentic-ai/tools/
-Standardized Python functions and Model Context Protocol (MCP) tool registries that agents can invoke (e.g., calculator.py, file_manager.py). This centralizes tool management away from agent logic.
-/agentic-ai/workflows/
-Pre-defined, declarative sequences for multi-agent collaboration, stored as Python chains (research_chain.py) or structured YAML files (multi_agent_workflow.yaml).
-/agentic-ai/api/
-The webhook normalization layer. Contains the RESTful endpoints, the Chain of Responsibility handlers, and specific API integrations for parsing Telegram and WhatsApp payloads.
-/agentic-ai/commerce/
-The secure agentic payment SDKs. Includes MPC wallet signers, the Policy Engine guardrails, and the fiat/crypto integration adapters for Stripe and Razorpay.
-compose.yaml
-The primary Docker orchestration file defining the containerized environment, network constraints, volume mounts, and service dependencies for the entire stack.
+### Ingress Normalisation
 
-By strictly decoupling the api messaging adapters from the core agents logic, developers can seamlessly swap the frontend interface (e.g., transitioning from WhatsApp to a customized internal Slack bot) without refactoring a single line of the cognitive reasoning code.54 Similarly, isolating external capabilities within the /tools directory via MCP ensures that agents remain pure reasoning engines, entirely agnostic to the underlying implementations of the utilities they call.36
-9. Deployment and Self-Hosting Architecture
-To fulfill the explicit requirement for a fully self-hosted, sovereign deployment, the system abandons reliance on managed cloud AI orchestrators or proprietary Software-as-a-Service (SaaS) backend platforms. Instead, it utilizes an entirely containerized stack orchestrated via Docker Compose.44 This approach guarantees absolute data privacy and governance, ensuring that highly sensitive semantic memories, corporate infrastructure credentials, and private MPC shards never leave the host server.
-9.1 Multi-Container Docker Orchestration
-The deployment utilizes a microservices architecture managed through a unified docker-compose.yaml file, effectively treating the entire agent environment as a single deployable unit.44 A single command (docker compose up) initiates the orchestration sequence, bringing up the dependent services in the correct order.55 The stack comprises several specialized, isolated containers:
-The Agent Runtime (Docker Agent): Functioning as the central nervous system, this container hosts the primary Python runtime. It executes the core agent logic, orchestrates memory retrieval processes, manages the multi-agent swarm configurations, and executes the Intelligence Brain's routing algorithms.56
-Docker Model Runner: A dedicated, GPU-accelerated service specifically engineered for pulling and hosting open-weight models (e.g., Llama 3.2, Qwen) locally on the host's hardware.44 It exposes these models via standard OpenAI-compatible REST APIs, allowing the Intelligence Brain to route low-complexity queries entirely locally, thereby eliminating external API costs and mitigating network latency.57
-MCP Gateway: A secure enforcement and discovery point that manages the lifecycle of Model Context Protocol servers.44 It handles tool discovery, securely mounts specific directories required for file access, and rigidly enforces authorization limits and policies before allowing the Agent Runtime container to execute external actions.45
-Database Cluster: A collection of separate, optimized containers managing state persistence. This includes Neo4j for handling complex Semantic memory graphs, a vector store like Qdrant or Milvus for semantic searches of Episodic memory, and a PostgreSQL instance for standard relational data, idempotency keys, and immutable audit ledgers.2
-Sandboxed Execution Environment: A distinct, highly hardened container specifically designated as the target for the agent's Computer Use skills. This sandbox is strictly segregated from the Agent Runtime and the host machine, preventing any risk of contamination from maliciously generated bash scripts.10
-9.2 Internal Networking, Scaling, and Cloud Serverless
-Docker Compose inherently manages the internal software-defined networking stack. This allows the microservices to communicate securely via internal DNS resolution (e.g., the Agent Runtime querying http://mcp-gateway:8080 or writing to the vector database) without explicitly mapping ports to the host interface or exposing them to the public internet.55 The only external ingress permitted by the firewall rules is the designated webhook endpoint exposed by the API Gateway to receive incoming messages from Telegram and WhatsApp.
-For high-availability enterprise scenarios, the architecture supports rapid horizontal scaling. If the system experiences a high volume of concurrent user requests through the messaging interfaces, the core Agent Runtime containers can be dynamically replicated. Furthermore, through modern deployment integrations, developers are not restricted solely to bare-metal servers. The exact same Docker Compose configuration can specify a serverless architecture, allowing the agentic application to be deployed directly to scalable cloud environments using commands like gcloud run compose up for Google Cloud Run, or utilizing Microsoft Azure Container Apps Service, ensuring the system remains both sovereign in its codebase and infinitely scalable in its execution.57
-Works cited
-The AI Taxonomy: From Predicting Words to Mastering Logic | by Ajay Verma | Medium, accessed on April 12, 2026, https://medium.com/@ajayverma23/the-ai-taxonomy-from-predicting-words-to-mastering-logic-edf3304b527f
-The Three Memory Systems Every Production AI Agent Needs, accessed on April 12, 2026, https://tianpan.co/blog/long-term-memory-types-ai-agents
-Telegram WhatsApp Business Messaging Integration - Quick Connect - Zapier, accessed on April 12, 2026, https://zapier.com/apps/whatsapp-business-messaging/integrations/telegram
-I built a one-click WhatsApp AI agent setup — no Twilio, no API keys, no Meta Business verification - Reddit, accessed on April 12, 2026, https://www.reddit.com/r/microsaas/comments/1sbnhdx/i_built_a_oneclick_whatsapp_ai_agent_setup_no/
-Choose a design pattern for your agentic AI system | Cloud Architecture Center, accessed on April 12, 2026, https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system
-A brain-inspired agentic architecture to improve planning with LLMs - PMC, accessed on April 12, 2026, https://pmc.ncbi.nlm.nih.gov/articles/PMC12485071/
-Lessons from building an intelligent LLM router : r/LLMDevs - Reddit, accessed on April 12, 2026, https://www.reddit.com/r/LLMDevs/comments/1nsi2g7/lessons_from_building_an_intelligent_llm_router/
-Agent Reasoning vs. LLM Reasoning: Key Differences and Cost Analysis | by Stella Jo, accessed on April 12, 2026, https://medium.com/@doubletaken/agent-reasoning-vs-llm-reasoning-key-differences-real-world-applications-and-cost-analysis-fdac6afe13cb
-Modeling Agent Memory - Neo4j, accessed on April 12, 2026, https://neo4j.com/blog/developer/modeling-agent-memory/
-Hosting the Agent SDK - Claude Code Docs, accessed on April 12, 2026, https://platform.claude.com/docs/en/agent-sdk/hosting
-Building the Payment Gateway for AI Agents: A Technical Deep Dive ..., accessed on April 12, 2026, https://dev.to/agentwallex/building-the-payment-gateway-for-ai-agents-a-technical-deep-dive-11g
-Agentic Payments — A Deep, end‑to‑end technical guide (LLM + AI ..., accessed on April 12, 2026, https://medium.com/@mamidipaka2003/agentic-payments-a-deep-end-to-end-technical-guide-llm-ai-upi-7ddc2535ca5b
-How to Build an AI Telegram Bot with Python | Step by Step Tutorial - YouTube, accessed on April 12, 2026, https://www.youtube.com/watch?v=zck_YW3SULg
-Building Telegram Bot with Python-Telegram-Bot: A Comprehensive Guide - Medium, accessed on April 12, 2026, https://medium.com/@moraneus/building-telegram-bot-with-python-telegram-bot-a-comprehensive-guide-7e33f014dc79
-AI-powered Telegram & WhatsApp business agent workflow - N8N, accessed on April 12, 2026, https://n8n.io/workflows/5311-ai-powered-telegram-and-whatsapp-business-agent-workflow/
-Synthia — Building an AI Telegram agent with Python and Claude. Part 1: FastAPI Telegram integration | by Dan Siwiec | Dan On Coding, accessed on April 12, 2026, https://danoncoding.com/building-an-ai-telegram-agent-with-python-and-claude-2f18a0d1a6dc
-Build Your Own AI-Powered Telegram Bot with Python | by VXRL | Feb, 2026 - Medium, accessed on April 12, 2026, https://vxrl.medium.com/build-your-own-ai-powered-telegram-bot-with-python-aa4bb558122f
-How to Build an Autonomous AI Agent with n8n and Decapod - freeCodeCamp, accessed on April 12, 2026, https://www.freecodecamp.org/news/how-to-build-an-autonomous-ai-agent-with-n8n-and-decapod/
-Two design patterns for Telegram Bots - DEV Community, accessed on April 12, 2026, https://dev.to/madhead/two-design-patterns-for-telegram-bots-59f5
-A Modal application for serving a Letta agent on Telegram. - GitHub, accessed on April 12, 2026, https://github.com/letta-ai/letta-telegram
-Everyone's trying vectors and graphs for AI memory. We went back to SQL. : r/LocalLLaMA, accessed on April 12, 2026, https://www.reddit.com/r/LocalLLaMA/comments/1nkwx12/everyones_trying_vectors_and_graphs_for_ai_memory/
-Cognitive Architectures for AI Agents (CoALA): Explained - Cognee, accessed on April 12, 2026, https://www.cognee.ai/blog/fundamentals/cognitive-architectures-for-language-agents-explained
-Building AI Agents with Memory Systems: Cognitive Architectures for LLMs, accessed on April 12, 2026, https://bluetickconsultants.medium.com/building-ai-agents-with-memory-systems-cognitive-architectures-for-llms-176d17e642e7
-Cognitive Architectures for Language Agents - arXiv, accessed on April 12, 2026, https://arxiv.org/html/2309.02427v3
-Beyond Short-term Memory: The 3 Types of Long-term Memory AI Agents Need - MachineLearningMastery.com, accessed on April 12, 2026, https://machinelearningmastery.com/beyond-short-term-memory-the-3-types-of-long-term-memory-ai-agents-need/
-Building an AI-Powered Semantic Memory System with Graph Databases and Vector Embeddings - Nikhil Doye, accessed on April 12, 2026, https://nikhil-datasolutions.medium.com/building-an-ai-powered-semantic-memory-system-with-graph-databases-and-vector-embeddings-adba193f916d
-Hands-on AI workshop: Graph RAG, Memory & Multimodal Agents - YouTube, accessed on April 12, 2026, https://www.youtube.com/watch?v=FzvIuoIJCcU
-AI Agent Orchestration Patterns - Azure Architecture Center | Microsoft Learn, accessed on April 12, 2026, https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns
-Agentic AI Architecture: Types, Components & Best Practices - Exabeam, accessed on April 12, 2026, https://www.exabeam.com/explainers/agentic-ai/agentic-ai-architecture-types-components-best-practices/
-How to structure docs for AI agents - Ability.ai, accessed on April 12, 2026, https://www.ability.ai/blog/docs-as-agent-cognitive-model
-Agentic AI Architectures And Design Patterns | by Anil Jain | AI / ML Architect - Medium, accessed on April 12, 2026, https://medium.com/@anil.jain.baba/agentic-ai-architectures-and-design-patterns-288ac589179a
-Agentic AI Design Patterns Introduction and walkthrough | Amazon Web Services - YouTube, accessed on April 12, 2026, https://www.youtube.com/watch?v=MrD9tCNpOvU
-How to Build a Multi-Agent AI System Fast with cagent | Docker, accessed on April 12, 2026, https://www.docker.com/blog/how-to-build-a-multi-agent-system/
-How to Build a Distributed Multi-Agent Architecture with Docker : r/LightAPILLM - Reddit, accessed on April 12, 2026, https://www.reddit.com/r/LightAPILLM/comments/1s6pg06/how_to_build_a_distributed_multiagent/
-How to Build and Deploy a Multi-Agent AI System with Python and Docker - freeCodeCamp, accessed on April 12, 2026, https://www.freecodecamp.org/news/build-and-deploy-multi-agent-ai-with-python-and-docker/
-A Practical Guide for Designing, Developing, and Deploying Production-Grade Agentic AI Workflows - arXiv, accessed on April 12, 2026, https://arxiv.org/html/2512.08769v1
-Reasoning model - Wikipedia, accessed on April 12, 2026, https://en.wikipedia.org/wiki/Reasoning_model
-Multi-LLM routing strategies for generative AI applications on AWS | Artificial Intelligence, accessed on April 12, 2026, https://aws.amazon.com/blogs/machine-learning/multi-llm-routing-strategies-for-generative-ai-applications-on-aws/
-The Model Router: Running a Team of Local LLMs Instead of One Big One - Medium, accessed on April 12, 2026, https://medium.com/@michael.hannecke/the-model-router-running-a-team-of-local-llms-instead-of-one-big-one-fd75eeec9d39
-Three Stages of Language Intelligence：LLM → LRM → CLM - ResearchGate, accessed on April 12, 2026, https://www.researchgate.net/publication/395303179_Three_Stages_of_Language_IntelligenceLLM_LRM_CLM
-An Easy Introduction to LLM Reasoning, AI Agents, and Test Time Scaling, accessed on April 12, 2026, https://developer.nvidia.com/blog/an-easy-introduction-to-llm-reasoning-ai-agents-and-test-time-scaling/
-CP-Router: An Uncertainty-Aware Router Between LLM and LRM - arXiv, accessed on April 12, 2026, https://arxiv.org/html/2505.19970v1
-Computer use tool - Claude API Docs, accessed on April 12, 2026, https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool
-Agentic AI applications - Docker Docs, accessed on April 12, 2026, https://docs.docker.com/guides/agentic-ai/
-Docker MCP Gateway: Open Source, Secure Infrastructure for Agentic AI, accessed on April 12, 2026, https://www.docker.com/blog/docker-mcp-gateway-secure-infrastructure-for-agentic-ai/
-OmniAgentPay Payment Infrastructure for AI Agent for Agentic Commerce on Arc - Lablab.ai, accessed on April 12, 2026, https://lablab.ai/ai-hackathons/agentic-commerce-on-arc/omniarc/omniagentpay-payment-infrastructure-for-ai-agent
-What is agentic commerce? A guide to getting started - Stripe, accessed on April 12, 2026, https://stripe.com/guides/agentic-commerce
-Stripe Machine Payments Protocol: AI Agent Pay Guide - Digital Applied, accessed on April 12, 2026, https://www.digitalapplied.com/blog/stripe-machine-payments-protocol-ai-agents-autonomous-pay
-Introducing the Machine Payments Protocol - Stripe, accessed on April 12, 2026, https://stripe.com/blog/machine-payments-protocol
-x402 payments - Stripe Documentation, accessed on April 12, 2026, https://docs.stripe.com/payments/machine/x402
-Razorpay Agentic Payments for Voice AI Commerce, accessed on April 12, 2026, https://razorpay.com/blog/razorpay-agentic-payments-voice-ai/
-Razorpay Agentic Payments | India's First AI-Powered Conversational Payments, accessed on April 12, 2026, https://razorpay.com/agentic-payments/
-Integration Steps | Python SDK | Razorpay Docs, accessed on April 12, 2026, https://razorpay.com/docs/payments/server-integration/python/integration-steps/
-Organizing Files for Agentic AI Systems: My Rough Draft | by Satheesh Kumar | Medium, accessed on April 12, 2026, https://medium.com/@sathee12/organizing-files-for-agentic-ai-systems-my-rough-draft-e413dbe241d7
-Building AI Agents with Docker MCP Toolkit: A Developer's Real-World Setup, accessed on April 12, 2026, https://www.docker.com/blog/docker-mcp-ai-agent-developer-setup/
-How To Build a Multi-Agent AI System with Docker Agent | DigitalOcean, accessed on April 12, 2026, https://www.digitalocean.com/community/tutorials/how-to-build-multi-agent-ai-system-docker-agent-digitalocean
-Docker Brings Compose to the Agent Era: Building AI Agents is Now Easy, accessed on April 12, 2026, https://www.docker.com/blog/build-ai-agents-with-docker-compose/
+```mermaid
+flowchart LR
+    TG[Telegram\nWebhook\nJSON + inline keyboards] --> GW[API Gateway\nFastAPI / Quart\nor n8n workflow]
+    WA[WhatsApp Business\nWebhook\nAuthenticated · rich media] --> GW
+    GW --> NM["Normalise → AgentMessage\n────────────────────\nuser_id  ·  platform_origin\ntimestamp  ·  raw_content\nintent_flags  ·  media_attachments"]
+    NM --> COR[Chain of\nResponsibility]
+```
+
+### Chain of Responsibility
+
+```mermaid
+flowchart TD
+    IN([Incoming AgentMessage]) --> H1["① Auth & Rate Limiting\nValidate cryptographic identity\nEnforce per-user interaction limits"]
+    H1 --> |Rejected| ERR([Rate-limit / Auth Error])
+    H1 --> |Passed| H2["② Context & State Recovery\nQuery DB + Letta plugins\nRestore full session state"]
+    H2 --> H3["③ Intent Classification\nLightweight embedding model\nCasual inquiry / Command / Complex task"]
+    H3 --> H4["④ Agent Dispatch\nRoute enriched payload\nto Cognitive Brain"]
+    H4 --> CB([Cognitive Brain])
+```
+
+---
+
+## 2. Cognitive Memory Architecture
+
+Four isolated memory tiers eliminate conversational amnesia. The 2026 LOCOMO benchmark confirms that optimised retrievers achieve sub-second latency versus >9 s for full-context approaches.
+
+```mermaid
+flowchart TD
+    WM["Working Memory\n─────────────────\nActive context window  •  FIFO buffer\nSystem prompt  •  Real-time state\nBackground daemon monitors token pressure\n→ write-back at 75 % capacity"]
+    EM["Episodic Memory\n─────────────────\nVector DB — Qdrant / Milvus / Pinecone\nWeighted retrieval score:\n  60 % semantic cosine similarity\n  25 % temporal recency (Ebbinghaus decay)\n  15 % inferred importance"]
+    SM["Semantic Memory\n─────────────────\nGraph DB — Neo4j / Amazon Neptune\nEntity nodes + directed-edge relationships\nGraph RAG traversal  •  Confidence decay\n→ stale facts flagged after configurable epoch"]
+    PM["Procedural Memory\n─────────────────\nWorkflow templates  •  Learned heuristics\nCoding preferences  •  Execution patterns\nAll writes validated by Critic LLM\nbefore committing to store"]
+    WM --> |"Overflow → summarise & archive"| EM
+    EM --> |"Pattern extraction"| SM
+    SM --> |"Guide execution strategy"| PM
+    PM --> |"Inform active planning"| WM
+```
+
+### Memory Consolidation Pipeline
+
+```mermaid
+flowchart TD
+    RAW([Raw Conversation]) --> EXT["Async Extraction LLM\nDistinguish routine chatter\nfrom actionable insights"]
+    EXT --> SIM{"Search for semantically\nsimilar existing memories"}
+    SIM --> |No match found| ADD[ADD\nCreate new memory record]
+    SIM --> |Partial / superseding match| UPD[UPDATE\nRefine existing record]
+    SIM --> |Redundant information| NOP[NO-OP\nDiscard — no write]
+    ADD --> VS[(Vector Store\nACTIVE record)]
+    UPD --> VS
+    UPD --> |Mark previous version| INV[(INACTIVE / INVALID\nImmutable audit trail)]
+```
+
+---
+
+## 3. Cognitive Brain: Orchestration
+
+### ReAct Execution Loop
+
+```mermaid
+flowchart TD
+    IN([Incoming Task]) --> RT["Reasoning Trace\nHypothesis  •  current state\nPlanned action — chain-of-thought"]
+    RT --> TC[Tool Invocation]
+    TC --> OBS[Observation\nTool result received]
+    OBS --> EVAL{"Outcome\nEvaluation"}
+    EVAL --> |Success / partial success| US[Update State Matrix]
+    EVAL --> |Failure or sub-optimal result| RFC["Reflection Module\nIdentify root cause\nAdjust plan — divergent approach"]
+    RFC --> RT
+    US --> DONE{"Task\nComplete?"}
+    DONE --> |No — next step| RT
+    DONE --> |Yes| OUT([Output Response])
+```
+
+### Multi-Agent Swarm (Hierarchical Decomposition)
+
+```mermaid
+flowchart TD
+    BROAD([Broad Directive]) --> MGR["Manager Agent\nHierarchical Task Decomposition\nDelegates scoped sub-tasks"]
+    MGR --> RA["Research Agent\nWeb search tools\nSecurity databases"]
+    MGR --> AA["Analysis Agent\nLog-parsing tools\nInfrastructure state review"]
+    MGR --> EA["Execution Agent\nComputer-use tools\nPatch writing + deployment"]
+    RA --> |Vulnerability report| MGR
+    AA --> |Infrastructure analysis| MGR
+    EA --> |Deployment status| MGR
+    MGR --> RESULT([Consolidated Result])
+```
+
+### Documentation-as-Cognitive-Model
+
+```mermaid
+flowchart LR
+    CL[changelog.md\nThe Past\nDecisions + state history]
+    AR[architecture.md\nThe Present\nSource of truth]
+    RQ[requirements.md\nThe Future\nTargeted end-state]
+    RD[roadmap.md\nThe Plan\nPresent → Future steps]
+    CL --> AR --> RQ
+    AR --> RD --> RQ
+```
+
+---
+
+## 4. Intelligence Brain: Dynamic Model Routing
+
+A lightweight DeBERTa-based complexity classifier intercepts every prompt and evaluates it across multiple dimensions before dispatching to the optimal model class.
+
+### Classification Pipeline
+
+```mermaid
+flowchart TD
+    PROMPT([Incoming Prompt]) --> CLF["Complexity Classifier\nDeBERTa fine-tuned model\nReal-time multi-head evaluation"]
+    CLF --> T1["Task Category\nSummarisation · Sentiment\nCode generation · Quantitative analysis"]
+    CLF --> T2["Dimensional Scoring\nCreativity  •  Domain knowledge\nRigid constraints  •  Few-shot reliance"]
+    CLF --> T3["Entropy Analysis\nFull & Binary Entropy — FBE\nAmbiguity / uncertainty measurement"]
+    T1 & T2 & T3 --> SCORE[Weighted Complexity Score]
+    SCORE --> R1{"Score\nThreshold"}
+    R1 --> |Very low| SLM["SLM / Fast Local LLM\nChitchat · greetings\nMinimal latency"]
+    R1 --> |Low–medium| SLLM["Standard LLM\nSummarisation · extraction\nHigh throughput"]
+    R1 --> |Medium–high| HLLM["High-Tier LLM\nStructured output\nStrict JSON / function calling"]
+    R1 --> |High| LRM["Large Reasoning Model\nCode debug · math proofs\nTest-time scaling + multi-step deduction"]
+```
+
+### Routing Reference Table
+
+| Task Profile | Target Model Class | Rationale |
+|---|---|---|
+| Conversational Greeting / Chitchat | SLM / Fast Local LLM | Minimal latency; no deep reasoning needed |
+| Contextual Summarisation / Extraction | Standard LLM | High throughput; context-window bound |
+| Structured Output / Tool Parameter Generation | High-Tier LLM | Strict JSON schema + function calling required |
+| Code Debugging / Abstract Logic / Math Proof | LRM (Reasoning Model) | Test-time scaling + multi-step deductive proof |
+
+> **UniRoute integration:** Historical error vectors across representative prompts allow the router to generalise to entirely unseen foundation models, keeping routing logic adaptive as the open-source ecosystem evolves.
+
+---
+
+## 5. Computer-Use & Sandboxed Execution
+
+### Execution Flow
+
+```mermaid
+flowchart LR
+    AGENT[Agent Runtime] --> |Screenshot + coordinates| SBX["Sandboxed Container\nHeadless X11 display buffer\nMultimodal vision model"]
+    SBX --> ACT["OS Actions\nclick  •  keyboard type\nscroll  •  zoom region x₁y₁–x₂y₂"]
+    SBX --> PROXY["Network Proxy\nRequest validation\nCredential injection\nUnix socket transport"]
+    PROXY --> EXT[External Services\nAPIs · legacy software\nweb browsers]
+```
+
+### Defence-in-Depth Security Layers
+
+```mermaid
+flowchart TD
+    L1["① Kernel-Level Isolation\ngVisor runsc — syscalls intercepted in userspace\nor Firecracker micro-VMs\nReduces kernel attack surface"]
+    L2["② Immutable Filesystem\nRoot FS mounted read-only\n--tmpfs /tmp  •  --cap-drop ALL\n--security-opt no-new-privileges\n--pids-limit 100 (fork-bomb prevention)"]
+    L3["③ Network Isolation\nNo direct internet access inside sandbox\nAll traffic routed via monitored proxy host\nPrevents data exfiltration + C2 communication"]
+    L4["④ Credential Safety\nAgent holds zero real API keys\nProxy validates request logic\ninjects credentials · forwards to service\nKeys inaccessible even on full sandbox compromise"]
+    L1 --> L2 --> L3 --> L4
+```
+
+> **Isolation guarantee:** The sandbox container is strictly segregated from the Agent Runtime with no path to the surrounding infrastructure. Sensitive credentials and MPC key shards remain entirely outside the sandbox boundary at all times.
+
+### Model Context Protocol (MCP)
+
+```mermaid
+flowchart LR
+    AGENT[Agent Runtime] --> |Query available tools| MCPGW[MCP Gateway]
+    MCPGW --> |JSON schemas + discovery| AGENT
+    MCPGW --> DB[PostgreSQL\nDatabase]
+    MCPGW --> FS[Local Filesystem\nmounted directories]
+    MCPGW --> API[Remote API\nEndpoints]
+```
+
+---
+
+## 6. Secure Payment Module
+
+### End-to-End Payment Flow
+
+```mermaid
+flowchart TD
+    REQ([Agent HTTP Request\nto monetised resource]) --> |HTTP 402 Response| INT["Payment Adapter\nIntercepts request"]
+    INT --> PE{"Policy Engine\nGuardrail Checks"}
+    PE --> |Any check fails| DENY([Deny Transaction])
+    PE --> |"Daily limit ✓\nAllowlist ✓\nRate cap ✓\nTime window ✓"| SIGN["MPC Wallet Signing\n2-of-3 key shard threshold"]
+    SIGN --> RAILS{"Payment\nRails"}
+    RAILS --> |Crypto micropayment| BLKCH["Blockchain Rails\nTempo network · USDC stablecoin\n< 150 ms finality"]
+    RAILS --> |Fiat — e-commerce| STRIPE["Stripe Issuing\nSingle-use virtual card\nIsolates user's primary credit line"]
+    RAILS --> |Fiat — UPI| RZP["Razorpay UPI Circle\nPre-authorised mandate\nDelegated consent JWT"]
+    BLKCH --> RETRY([Retry original request\nwith signed auth token])
+    STRIPE --> RETRY
+    RZP --> RETRY
+```
+
+### MPC Wallet: Key Shard Architecture
+
+```mermaid
+flowchart LR
+    subgraph "Private Key — never fully assembled"
+        S1[App Shard\nGateway host]
+        S2[Backup Shard\nSecure off-site storage]
+        S3[Infrastructure Shard\nSeparate network segment]
+    end
+    S1 & S2 --> |2-of-3 threshold required| SIG[Valid Transaction\nSignature]
+    S3 -.-> |3rd shard — not required for signing| SIG
+```
+
+> **Idempotency:** All payment API calls use server-generated UUIDv4 idempotency keys tracked in an audit ledger. Razorpay webhook payloads are verified against `X-Razorpay-Signature` to prevent spoofed confirmations.
+
+---
+
+## 7. Codebase Structure
+
+```
+/agentic-ai/
+├── agents/         # Base classes · worker implementations · typing interfaces
+│                   # base_agent.py · planner_agent.py
+│
+├── memory/         # State-persistence subsystems
+│                   # Vector DB wrappers (episodic) · Neo4j builders (semantic)
+│                   # Procedural memory routing algorithms
+│
+├── brain/          # Central intelligence hub
+│                   # ReAct loop (step_handler.py) · Task Manager
+│                   # DeBERTa prompt complexity classifier
+│
+├── tools/          # MCP tool registries + standardised Python functions
+│                   # calculator.py · file_manager.py
+│
+├── workflows/      # Multi-agent collaboration definitions
+│                   # research_chain.py · multi_agent_workflow.yaml
+│
+├── api/            # Webhook normalisation layer
+│                   # Chain of Responsibility handlers
+│                   # Telegram + WhatsApp payload parsers
+│
+└── commerce/       # Agentic payment SDKs
+                    # MPC wallet signers · Policy Engine guardrails
+                    # Stripe + Razorpay adapters
+
+compose.yaml        # Docker orchestration — services, networks, volumes
+```
+
+```mermaid
+flowchart LR
+    API[api/\nWebhook layer] --> AGENTS[agents/\nCore logic]
+    AGENTS --> BRAIN[brain/\nReAct + routing]
+    BRAIN --> TOOLS[tools/\nMCP registries]
+    BRAIN --> MEM[memory/\nPersistence tiers]
+    BRAIN --> WORK[workflows/\nMulti-agent chains]
+    AGENTS --> COM[commerce/\nPayment SDKs]
+```
+
+> Decoupling `api/` from `agents/` means the frontend (Telegram, WhatsApp, Slack) can be swapped without touching a single line of cognitive reasoning code.
+
+---
+
+## 8. Deployment Architecture
+
+### Docker Compose Stack
+
+```mermaid
+flowchart TD
+    DC["docker compose up"] --> AR["Agent Runtime\nPython core  •  ReAct loop\nOrchestration + Intelligence Brain"]
+    DC --> MR["Model Runner\nGPU-accelerated local inference\nLlama · Qwen — OpenAI-compatible API\nEliminates external API costs"]
+    DC --> MCPGW["MCP Gateway\nTool discovery + auth enforcement\nMounts specific directories for file access"]
+    DC --> DB["Database Cluster\nNeo4j — semantic graph\nQdrant / Milvus — episodic vectors\nPostgreSQL — audit ledger + idempotency keys"]
+    DC --> SBX["Sandbox Container\nIsolated computer-use execution target\nStrictly segregated from Agent Runtime"]
+    AR <--> MR
+    AR <--> MCPGW
+    AR <--> DB
+    AR --> SBX
+```
+
+### Internal Networking & Ingress
+
+```mermaid
+flowchart LR
+    TG[Telegram] --> |Only permitted\nexternal ingress| APIGW["API Gateway\nPublic webhook endpoint"]
+    WA[WhatsApp] --> APIGW
+    subgraph "Containerised Environment — Cloud / Server"
+        APIGW --> AR[Agent Runtime]
+        AR --> |"http://mcp-gateway:8080"| MCPGW[MCP Gateway]
+        AR --> |"qdrant:6333"| VDB[(Vector DB)]
+        AR --> |"neo4j:7687"| NEO[(Neo4j)]
+        AR --> |"postgres:5432"| PG[(PostgreSQL)]
+        AR --> SBX[Sandbox]
+    end
+```
+
+> The same `compose.yaml` deploys to **Google Cloud Run** (`gcloud run compose up`) or **Azure Container Apps** for serverless, horizontally scalable production without altering a single line of the codebase.
+
+---
+
+## References
+
+1. [The AI Taxonomy: From Predicting Words to Mastering Logic](https://medium.com/@ajayverma23/the-ai-taxonomy-from-predicting-words-to-mastering-logic-edf3304b527f)
+2. [The Three Memory Systems Every Production AI Agent Needs](https://tianpan.co/blog/long-term-memory-types-ai-agents)
+3. [Choose a design pattern for your agentic AI system — Google Cloud](https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system)
+4. [A brain-inspired agentic architecture to improve planning with LLMs](https://pmc.ncbi.nlm.nih.gov/articles/PMC12485071/)
+5. [Lessons from building an intelligent LLM router](https://www.reddit.com/r/LLMDevs/comments/1nsi2g7/lessons_from_building_an_intelligent_llm_router/)
+6. [Agent Reasoning vs. LLM Reasoning: Cost Analysis](https://medium.com/@doubletaken/agent-reasoning-vs-llm-reasoning-key-differences-real-world-applications-and-cost-analysis-fdac6afe13cb)
+7. [Building the Payment Gateway for AI Agents](https://dev.to/agentwallex/building-the-payment-gateway-for-ai-agents-a-technical-deep-dive-11g)
+8. [Agentic Payments — Deep End-to-End Technical Guide](https://medium.com/@mamidipaka2003/agentic-payments-a-deep-end-to-end-technical-guide-llm-ai-upi-7ddc2535ca5b)
+9. [Hosting the Agent SDK — Claude Docs](https://platform.claude.com/docs/en/agent-sdk/hosting)
+10. [Agentic AI applications — Docker Docs](https://docs.docker.com/guides/agentic-ai/)
+11. [Docker MCP Gateway: Secure Infrastructure for Agentic AI](https://www.docker.com/blog/docker-mcp-gateway-secure-infrastructure-for-agentic-ai/)
+12. [Computer use tool — Claude API Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
+13. [A Practical Guide for Production-Grade Agentic AI Workflows](https://arxiv.org/html/2512.08769v1)
+14. [Modeling Agent Memory — Neo4j](https://neo4j.com/blog/developer/modeling-agent-memory/)
+15. [CP-Router: Uncertainty-Aware Router Between LLM and LRM](https://arxiv.org/html/2505.19970v1)
+16. [Stripe Machine Payments Protocol](https://stripe.com/blog/machine-payments-protocol)
+17. [Razorpay Agentic Payments](https://razorpay.com/agentic-payments/)
+18. [Cognitive Architectures for Language Agents — arXiv](https://arxiv.org/html/2309.02427v3)
