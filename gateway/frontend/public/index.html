@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS Gateway</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #14141f;
+      --border: #2a2a3a;
+      --text: #e0e0e8;
+      --text-dim: #888898;
+      --accent: #4a9eff;
+      --accent-dim: #2a6ecc;
+      --green: #1d9e75;
+      --orange: #ba7517;
+      --red: #d85a30;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+
+    .header .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--green);
+    }
+
+    .header .status::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .nav {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .nav button {
+      padding: 12px 24px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .nav button:hover { color: var(--text); }
+    .nav button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Chat Panel */
+    .chat-messages {
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: var(--surface);
+    }
+
+    .chat-msg {
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    .chat-msg.user {
+      background: var(--accent-dim);
+      margin-left: 20%;
+      text-align: right;
+    }
+
+    .chat-msg.jarvis {
+      background: #1a1a2a;
+      margin-right: 20%;
+    }
+
+    .chat-msg .role {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .chat-input input:focus { border-color: var(--accent); }
+
+    .chat-input button, .btn {
+      padding: 10px 20px;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .btn:hover { opacity: 0.9; }
+    .btn-danger { background: var(--red); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--text-dim);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .badge-on { background: #0f3d2e; color: var(--green); }
+    .badge-off { background: #3d1f0f; color: var(--orange); }
+
+    /* Nodes */
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .node-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .node-card .label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .node-card .value {
+      font-size: 24px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>JARVIS GATEWAY</h1>
+    <div class="status" id="status">Online</div>
+  </div>
+
+  <div class="nav">
+    <button class="active" onclick="showPanel('chat')">Chat</button>
+    <button onclick="showPanel('skills')">Skills</button>
+    <button onclick="showPanel('crons')">Cron Jobs</button>
+    <button onclick="showPanel('connections')">Connections</button>
+    <button onclick="showPanel('nodes')">Nodes</button>
+  </div>
+
+  <div class="content">
+    <!-- Chat Panel -->
+    <div class="panel active" id="panel-chat">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Talk to JARVIS..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()">Send</button>
+      </div>
+    </div>
+
+    <!-- Skills Panel -->
+    <div class="panel" id="panel-skills">
+      <div class="section-header">
+        <h2>Skill Modules</h2>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Description</th><th>Status</th></tr></thead>
+        <tbody id="skillsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Crons Panel -->
+    <div class="panel" id="panel-crons">
+      <div class="section-header">
+        <h2>Cron Jobs</h2>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Expression</th><th>Task</th><th>Status</th></tr></thead>
+        <tbody id="cronsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Connections Panel -->
+    <div class="panel" id="panel-connections">
+      <div class="section-header">
+        <h2>API Connections</h2>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>Service</th><th>Key</th></tr></thead>
+        <tbody id="connectionsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Nodes Panel -->
+    <div class="panel" id="panel-nodes">
+      <div class="section-header">
+        <h2>System Health</h2>
+      </div>
+      <div class="nodes-grid" id="nodesGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let ws;
+
+    // WebSocket
+    function connectWS() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${location.host}`);
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'response') {
+          addChatMessage('JARVIS', data.message);
+        }
+      };
+      ws.onclose = () => {
+        document.getElementById('status').textContent = 'Reconnecting...';
+        setTimeout(connectWS, 3000);
+      };
+      ws.onopen = () => {
+        document.getElementById('status').textContent = 'Online';
+      };
+    }
+    connectWS();
+
+    // Navigation
+    function showPanel(name) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById('panel-' + name).classList.add('active');
+      event.target.classList.add('active');
+
+      if (name === 'skills') loadSkills();
+      if (name === 'crons') loadCrons();
+      if (name === 'connections') loadConnections();
+      if (name === 'nodes') loadNodes();
+    }
+
+    // Chat
+    function addChatMessage(role, text) {
+      const el = document.createElement('div');
+      el.className = 'chat-msg ' + (role === 'You' ? 'user' : 'jarvis');
+      el.innerHTML = '<div class="role">' + role + '</div><div>' + text + '</div>';
+      const container = document.getElementById('chatMessages');
+      container.appendChild(el);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      addChatMessage('You', msg);
+      input.value = '';
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'chat', message: msg }));
+      }
+    }
+
+    // Skills
+    async function loadSkills() {
+      const res = await fetch(API + '/api/skills');
+      const skills = await res.json();
+      const tbody = document.getElementById('skillsBody');
+      tbody.innerHTML = skills.map(s =>
+        '<tr><td>' + s.name + '</td><td>' + (s.description || '-') + '</td><td><span class="badge ' + (s.enabled ? 'badge-on' : 'badge-off') + '">' + (s.enabled ? 'Enabled' : 'Disabled') + '</span></td></tr>'
+      ).join('');
+    }
+
+    // Crons
+    async function loadCrons() {
+      const res = await fetch(API + '/api/crons');
+      const crons = await res.json();
+      const tbody = document.getElementById('cronsBody');
+      tbody.innerHTML = crons.map(c =>
+        '<tr><td>' + c.name + '</td><td><code>' + c.expression + '</code></td><td>' + (c.task || '-') + '</td><td><span class="badge ' + (c.enabled ? 'badge-on' : 'badge-off') + '">' + (c.enabled ? 'Active' : 'Paused') + '</span></td></tr>'
+      ).join('');
+    }
+
+    // Connections
+    async function loadConnections() {
+      const res = await fetch(API + '/api/connections');
+      const conns = await res.json();
+      const tbody = document.getElementById('connectionsBody');
+      tbody.innerHTML = conns.map(c =>
+        '<tr><td>' + c.name + '</td><td>' + (c.service || '-') + '</td><td>' + c.key + '</td></tr>'
+      ).join('');
+    }
+
+    // Nodes
+    async function loadNodes() {
+      const res = await fetch(API + '/api/nodes');
+      const data = await res.json();
+      document.getElementById('nodesGrid').innerHTML =
+        '<div class="node-card"><div class="label">Uptime</div><div class="value">' + Math.round(data.uptime) + 's</div></div>' +
+        '<div class="node-card"><div class="label">Memory (RSS)</div><div class="value">' + data.memory.rss + ' MB</div></div>' +
+        '<div class="node-card"><div class="label">Heap Used</div><div class="value">' + data.memory.heapUsed + ' MB</div></div>' +
+        '<div class="node-card"><div class="label">Platform</div><div class="value">' + data.platform + '</div></div>' +
+        '<div class="node-card"><div class="label">Node.js</div><div class="value">' + data.nodeVersion + '</div></div>' +
+        '<div class="node-card"><div class="label">PID</div><div class="value">' + data.pid + '</div></div>';
+    }
+
+    // Welcome message
+    addChatMessage('JARVIS', 'Gateway online, Sir. All systems nominal. How may I assist you?');
+  </script>
+</body>
+</html>

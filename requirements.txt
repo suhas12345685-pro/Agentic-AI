@@ -1,0 +1,23 @@
+# JARVIS Python Dependencies
+
+# MCP servers
+fastmcp>=0.4.0
+
+# Knowledge graph
+networkx>=3.2
+
+# ChromaDB Python client (optional, for direct Python access)
+chromadb>=0.4.22
+
+# Embeddings
+sentence-transformers>=2.6.0
+
+# Utilities
+python-dotenv>=1.0.1
+requests>=2.31.0
+
+# Training (install in Colab, not locally)
+# unsloth @ https://github.com/unslothai/unsloth
+# trl>=0.8.0
+# datasets>=2.18.0
+# transformers>=4.38.0

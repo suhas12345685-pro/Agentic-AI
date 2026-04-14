@@ -1,0 +1,44 @@
+{
+  "name": "jarvis-agentic-ai",
+  "version": "1.0.0",
+  "description": "JARVIS — Just A Rather Very Intelligent System. An agentic AI assistant built on DeepSeek R1 7B.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js --mode dev",
+    "telegram": "node index.js --mode telegram",
+    "gateway": "node gateway/backend/server.js",
+    "generate-dataset": "node training/dataset/generate.js",
+    "test": "node --test src/**/*.test.js",
+    "preflight": "bash scripts/preflight.sh"
+  },
+  "keywords": [
+    "jarvis",
+    "ai",
+    "agent",
+    "deepseek",
+    "llm",
+    "react-loop",
+    "agentic"
+  ],
+  "author": "Suhas",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "better-sqlite3": "^11.1.2",
+    "chromadb": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "screenshot-desktop": "^1.15.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.17.1"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
