@@ -37,7 +37,7 @@ DIVERGE: <a completely different approach to the problem>
 
 Available tools:
 - web_search(query): Search the internet for current information
-- run_code(language, code): Execute code in a sandbox
+- run_code(language, code): Execute code
 - read_file(path): Read a file from the filesystem
 - write_file(path, content): Write content to a file
 - memory_recall(query): Search long-term memory for relevant information

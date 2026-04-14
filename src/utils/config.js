@@ -34,13 +34,6 @@ export const config = {
     elevenlabsApiKey: process.env.ELEVENLABS_API_KEY || '',
   },
 
-  // Security
-  security: {
-    allowedDomains: (process.env.ALLOWED_DOMAINS || 'google.com,wikipedia.org,github.com').split(','),
-    sandboxDir: process.env.SANDBOX_DIR || './tmp/sandbox',
-    planModeEnabled: process.env.PLAN_MODE_ENABLED !== 'false',
-  },
-
   // Gateway
   gateway: {
     port: parseInt(process.env.GATEWAY_PORT || '4747', 10),
