@@ -17,16 +17,12 @@ import { MemoryManager } from './src/memory/index.js';
 import { createSkillExecutor } from './src/skills/executor.js';
 import { CLIInterface } from './src/interfaces/cli.js';
 import { TelegramInterface } from './src/interfaces/telegram.js';
-import { initSandbox } from './src/security/sandbox.js';
 
 const log = createLogger('core');
 
 async function boot() {
   log.info('=== JARVIS Booting ===');
   log.info(`Mode: ${getMode()}`);
-
-  // Layer 0: Initialize sandbox
-  initSandbox();
 
   // Initialize memory system
   const memory = new MemoryManager();

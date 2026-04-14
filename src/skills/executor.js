@@ -9,6 +9,7 @@ import { config } from '../utils/config.js';
 
 const log = createLogger('skill-executor');
 
+
 export class SkillExecutor {
   constructor() {
     this.skills = new Map();
@@ -91,12 +92,6 @@ export function createSkillExecutor() {
     const filePath = args.slice(0, commaIdx).replace(/['"]/g, '').trim();
     const content = args.slice(commaIdx + 1).trim();
 
-    // Enforce sandbox
-    const sandboxDir = config.security.sandboxDir;
-    if (!filePath.startsWith(sandboxDir) && !filePath.startsWith('./tmp/')) {
-      return `Error: write_file restricted to sandbox directory (${sandboxDir})`;
-    }
-
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content);
     return `Written to ${filePath}`;
@@ -116,7 +111,6 @@ export function createSkillExecutor() {
     try {
       const output = execSync(cmd, {
         timeout: 30000,
-        cwd: config.security.sandboxDir,
         encoding: 'utf-8',
       });
       return output || '(no output)';

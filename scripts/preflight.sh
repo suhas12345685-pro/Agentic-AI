@@ -44,7 +44,6 @@ check "Python 3.10+ installed" "python3 --version | grep -E 'Python 3\.(1[0-9]|[
 
 # Required directories
 check "data/ directory exists" "[ -d data ]"
-check "tmp/sandbox/ directory exists" "[ -d tmp/sandbox ]"
 
 # Required files
 check ".env file exists" "[ -f .env ]"

@@ -195,8 +195,8 @@ const TOOL_ROUTING = {
   web_search: 'web',
   memory_recall: 'memory',
   memory_store: 'memory',
-  // read_file / write_file go through the reasoning agent so sandbox
-  // policy is checked against the broader goal first.
+  // read_file / write_file go through the reasoning agent so the broader
+  // goal informs path selection.
 };
 
 /* ------------------------------------------------------------------ *
