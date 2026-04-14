@@ -1,0 +1,15 @@
+# Core framework has zero hard requirements — it ships with fallbacks for
+# every optional backend.  Install any subset below to upgrade.
+
+# Semantic embeddings (preferred over the hash fallback)
+# sentence-transformers>=2.6.0
+
+# Persistent vector DB (otherwise an in-memory / JSON-snapshot store is used)
+# chromadb>=0.5.0
+
+# HTTP client for URL ingestion (urllib is used when absent)
+# httpx>=0.27.0
+
+# Real LLM backends (pick one)
+# openai>=1.40.0
+# anthropic>=0.34.0
