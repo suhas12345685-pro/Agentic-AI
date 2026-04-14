@@ -1,0 +1,25 @@
+{
+  "name": "jarvis-gateway",
+  "version": "1.0.0",
+  "description": "JARVIS Gateway — Web dashboard for JARVIS AI",
+  "main": "backend/server.js",
+  "type": "module",
+  "bin": {
+    "jarvis-gateway": "./bin/jarvis-gateway.js"
+  },
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "install:global": "npm install -g ."
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.1.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "open": "^10.1.0",
+    "ws": "^8.17.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
