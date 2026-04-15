@@ -9,7 +9,6 @@
  *   node index.js --mode dev         # Start in dev mode (CLI + verbose logging)
  */
 
-import { config } from './src/utils/config.js';
 import { createLogger } from './src/utils/logger.js';
 import { Orchestrator } from './src/brain/orchestrator.js';
 import { Personality } from './src/personality/wrapper.js';
@@ -17,77 +16,103 @@ import { MemoryManager } from './src/memory/index.js';
 import { createSkillExecutor } from './src/skills/executor.js';
 import { CLIInterface } from './src/interfaces/cli.js';
 import { TelegramInterface } from './src/interfaces/telegram.js';
+import { VoiceInterface } from './src/interfaces/voice.js';
+import { RagEngine } from './src/skills/rag-engine/index.js';
+import { BrowserAuto } from './src/skills/browser-auto/index.js';
+import { CiCdPipeline } from './src/skills/cicd-headless/index.js';
+import { ProactiveCron } from './src/skills/proactive-cron/index.js';
+import { Watchdog } from './src/skills/self-healing/index.js';
+import { defaultGuard } from './src/security/index.js';
 
 const log = createLogger('core');
 
 async function boot() {
+  const mode = getMode();
   log.info('=== JARVIS Booting ===');
-  log.info(`Mode: ${getMode()}`);
+  log.info(`Mode: ${mode}`);
 
-  // Initialize memory system
+  // ─── Memory ─────────────────────────────────────────────
   const memory = new MemoryManager();
   await memory.init();
 
-  // Initialize personality
+  // ─── Personality ────────────────────────────────────────
   const personality = new Personality();
 
-  // Initialize skill executor
-  const skillExecutor = createSkillExecutor();
+  // ─── Peripheral skills ──────────────────────────────────
+  const rag = new RagEngine({ semantic: memory.semantic });
+  const browser = new BrowserAuto();         // lazy-launched on first use
+  const cicd = new CiCdPipeline();           // operates on cwd by default
 
-  // Connect memory to skill executor
+  // ─── Skill executor ─────────────────────────────────────
+  const skillExecutor = createSkillExecutor({ rag, browser, cicd });
+
+  // Wire memory skills at runtime
   skillExecutor.register('memory_recall', async (query) => {
     const result = await memory.recall(query);
     return result || 'No relevant memories found.';
   });
   skillExecutor.register('memory_store', async (args) => {
-    const commaIdx = args.indexOf(',');
-    if (commaIdx === -1) return 'Error: memory_store requires key and value separated by comma';
+    const commaIdx = String(args).indexOf(',');
+    if (commaIdx === -1) return 'Error: memory_store requires "key, value"';
     const key = args.slice(0, commaIdx).trim();
     const value = args.slice(commaIdx + 1).trim();
     await memory.store(key, value);
     return `Stored in memory: ${key}`;
   });
 
-  // Initialize orchestrator
-  const orchestrator = new Orchestrator({ memory, skillExecutor, personality });
+  // ─── Orchestrator ───────────────────────────────────────
+  const orchestrator = new Orchestrator({
+    memory,
+    skillExecutor,
+    personality,
+    security: defaultGuard,
+  });
 
-  // Start the selected interface
-  const mode = getMode();
+  // ─── Background workers ─────────────────────────────────
+  const cron = new ProactiveCron({ orchestrator });
+  const watchdog = new Watchdog({ memory });
+  watchdog.on('degraded', ({ name }) => log.warn(`[watchdog] ${name} degraded`));
+  watchdog.on('recovered', ({ name }) => log.info(`[watchdog] ${name} recovered`));
+  watchdog.start();
 
+  // ─── Interface ──────────────────────────────────────────
   if (mode === 'telegram') {
     const telegram = new TelegramInterface(orchestrator);
     await telegram.start();
+  } else if (mode === 'voice') {
+    const voice = new VoiceInterface(orchestrator, { memory: memory.working });
+    voice.on('reply', (reply) => process.stdout.write(`JARVIS: ${reply}\n`));
+    await voice.start();
   } else {
-    // Default: CLI interface
     const cli = new CLIInterface(orchestrator);
     cli.start();
   }
 
   log.info('=== JARVIS Online ===');
 
-  // Graceful shutdown
-  process.on('SIGINT', () => {
-    log.info('Shutdown signal received');
-    memory.close();
+  // ─── Shutdown ───────────────────────────────────────────
+  const shutdown = async (signal) => {
+    log.info(`${signal} received — shutting down`);
+    try { watchdog.stop(); } catch { /* ignore */ }
+    try { cron.stopAll(); } catch { /* ignore */ }
+    try { await browser.close(); } catch { /* ignore */ }
+    try { memory.close(); } catch { /* ignore */ }
     process.exit(0);
-  });
+  };
 
-  process.on('SIGTERM', () => {
-    log.info('Termination signal received');
-    memory.close();
-    process.exit(0);
-  });
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
 
 function getMode() {
-  const modeIdx = process.argv.indexOf('--mode');
-  if (modeIdx !== -1 && process.argv[modeIdx + 1]) {
-    return process.argv[modeIdx + 1].toLowerCase();
+  const idx = process.argv.indexOf('--mode');
+  if (idx !== -1 && process.argv[idx + 1]) {
+    return process.argv[idx + 1].toLowerCase();
   }
   return 'cli';
 }
 
-boot().catch(err => {
+boot().catch((err) => {
   log.error(`Boot failed: ${err.message}`);
   process.exit(1);
 });
