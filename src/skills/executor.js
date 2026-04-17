@@ -7,7 +7,8 @@
  *   web_search, run_code, read_file, write_file,
  *   rag_ingest, rag_ask, screen_describe,
  *   system_snapshot, browser_run, cicd_run,
- *   memory_recall, memory_store  (wired at boot by index.js).
+ *   memory_recall, memory_store  (wired at boot by index.js),
+ *   cdkt_map, cdkt_synthesise, cdkt_council  (CDKT framework).
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -18,6 +19,7 @@ import { createLogger } from '../utils/logger.js';
 import webSearch from './web-search/index.js';
 import codeExec from './code-exec/index.js';
 import screenVision from './screen-vision/index.js';
+import { registerCDKTSkills } from './cdkt/index.js';
 import systemMonitor from './system-monitor/index.js';
 
 const log = createLogger('skill-executor');
@@ -153,6 +155,9 @@ export function createSkillExecutor({ rag, browser, cicd } = {}) {
     `Memory recall for "${query}" — connect memory manager at runtime.`);
   executor.register('memory_store', async () =>
     'Memory store — connect memory manager at runtime.');
+
+  // --- CDKT: cross-domain knowledge transfer ---------------------------
+  registerCDKTSkills(executor);
 
   return executor;
 }
