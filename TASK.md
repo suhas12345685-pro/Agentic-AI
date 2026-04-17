@@ -16,11 +16,11 @@
 7. Generate training dataset (`training/dataset/generate.js`) — 1,000 JARVIS conversations in Alpaca format
 
 ### Success Criteria
-- [ ] `node index.js --mode cli` starts without errors
-- [ ] LLM router classifies queries and routes to correct model
-- [ ] JARVIS personality applied to all responses
-- [ ] Working memory retains last 20 turns
-- [ ] Dataset generator produces 1,000 valid JSON examples
+- [x] `node index.js --mode cli` starts without errors
+- [x] LLM router classifies queries and routes to correct model
+- [x] JARVIS personality applied to all responses
+- [x] Working memory retains last 20 turns
+- [x] Dataset generator produces 1,000 valid JSON examples
 
 ---
 
@@ -37,11 +37,11 @@
 8. Build MCP server skill (`src/skills/mcp-server/`)
 
 ### Success Criteria
-- [ ] All 4 memory tiers functional and tested
-- [ ] ReAct loop completes multi-step tasks
-- [ ] Web search returns grounded results
-- [ ] Code execution runs in sandbox safely
-- [ ] RAG engine retrieves relevant context from documents
+- [x] All 4 memory tiers functional and tested
+- [x] ReAct loop completes multi-step tasks
+- [x] Web search returns grounded results
+- [x] Code execution runs in sandbox safely
+- [x] RAG engine retrieves relevant context from documents
 
 ---
 
@@ -57,11 +57,11 @@
 7. Build security guard (`src/security/`) — injection defense + sandboxing
 
 ### Success Criteria
-- [ ] Screen vision captures and describes screen content
-- [ ] Voice pipeline processes speech end-to-end
-- [ ] Gateway dashboard opens at localhost:4747
-- [ ] Watchdog detects and recovers from crashes
-- [ ] Security guard blocks injection attempts
+- [x] Screen vision captures and describes screen content
+- [x] Voice pipeline processes speech end-to-end
+- [x] Gateway dashboard opens at localhost:4747
+- [x] Watchdog detects and recovers from crashes
+- [x] Security guard blocks injection attempts
 
 ---
 
@@ -76,8 +76,8 @@
 6. Build HuggingFace deployment (`deploy/hf_space/`)
 
 ### Success Criteria
-- [ ] Planner breaks complex goals into executable sub-tasks
-- [ ] Browser automation completes multi-page workflows
-- [ ] Multi-agent system coordinates specialist sub-agents
-- [ ] CI/CD pipeline auto-fixes failures
-- [ ] HuggingFace deployment serves model via API
+- [x] Planner breaks complex goals into executable sub-tasks
+- [x] Browser automation completes multi-page workflows
+- [x] Multi-agent system coordinates specialist sub-agents
+- [x] CI/CD pipeline auto-fixes failures
+- [x] HuggingFace deployment serves model via API
