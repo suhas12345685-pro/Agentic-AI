@@ -195,6 +195,10 @@ const TOOL_ROUTING = {
   web_search: 'web',
   memory_recall: 'memory',
   memory_store: 'memory',
+  // CDKT skills route through the reasoning agent which calls skillExecutor
+  cdkt_map: 'reasoning',
+  cdkt_synthesise: 'reasoning',
+  cdkt_council: 'reasoning',
   // read_file / write_file go through the reasoning agent so the broader
   // goal informs path selection.
 };

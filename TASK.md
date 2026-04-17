@@ -80,4 +80,36 @@
 - [x] Browser automation completes multi-page workflows
 - [x] Multi-agent system coordinates specialist sub-agents
 - [x] CI/CD pipeline auto-fixes failures
+- [x] Self-improvement loop analyses episodic memory and generates typed suggestions
 - [x] HuggingFace deployment serves model via API
+
+---
+
+## Phase 5 — Cross-Domain Intelligence (CDKT Framework)
+
+### Overview
+A framework for interdisciplinary knowledge transfer, collaboration, and innovation synthesis.
+Enables JARVIS to approach problems from multiple domain perspectives simultaneously.
+
+### Components
+1. `src/skills/cdkt/domain-registry.js` — 8 pre-seeded domains with principles, methodologies, concepts, analogies
+2. `src/skills/cdkt/cross-domain-mapper.js` — Relevance scoring + 10 universal structural patterns
+3. `src/skills/cdkt/knowledge-synthesizer.js` — Multi-domain principle extraction + strategy generation
+4. `src/skills/cdkt/collaboration-engine.js` — Specialist → Devil's Advocate → Mediator council pipeline
+5. `src/skills/cdkt/index.js` — SkillExecutor integration: `cdkt_map`, `cdkt_synthesise`, `cdkt_council`
+
+### Skills Added
+| Skill | Description |
+|---|---|
+| `cdkt_map` | Fast zero-LLM domain relevance map and pattern detection |
+| `cdkt_synthesise` | Multi-domain solution strategy synthesis (3–5 LLM calls) |
+| `cdkt_council` | Full Innovation Report via interdisciplinary council (8–12 LLM calls) |
+
+### Success Criteria
+- [x] DomainRegistry stores and searches 8 seeded domains
+- [x] CrossDomainMapper scores relevance and detects 10 universal patterns
+- [x] KnowledgeSynthesizer extracts principles and generates ranked strategies
+- [x] CollaborationEngine runs Specialist → Devil's Advocate → Mediator pipeline
+- [x] All three CDKT skills registered in SkillExecutor and routed in Orchestrator
+- [x] `cdkt_map` returns domain relevance without any LLM calls
+- [x] `cdkt_council` outputs structured Innovation Report in markdown
